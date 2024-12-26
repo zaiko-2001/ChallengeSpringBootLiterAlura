@@ -7,6 +7,10 @@ import com.example.LiterAlura.repository.LibroRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class LibroService {
 
@@ -17,20 +21,28 @@ public class LibroService {
     private LibroRepository libroRepository;
 
     public Libro insertarLibroConAutor(Libro libro) {
-        // Verificamos si el autor ya existe, si no, lo insertamos
         Autor autor = libro.getAutor();
 
-        // Buscamos el autor por su nombre
+        // Verificamos si el autor ya existe
         if (autor.getNombre() == null || autorRepository.getByNombre(autor.getNombre()) == null) {
-            // Si no existe, lo guardamos
-            autor = autorRepository.save(autor);
+            autor = autorRepository.save(autor); // Guardamos el autor si no existe
         } else {
-            // Si existe, lo obtenemos de la base de datos
             autor = autorRepository.getByNombre(autor.getNombre());
         }
 
-        // Asignamos el autor al libro y guardamos el libro
-        libro.setAutor(autor);
+        libro.setAutor(autor); // Asignamos el autor al libro
         return libroRepository.save(libro);
+    }
+
+    public Map<String, Long> contarLibrosPorIdioma(List<String> idiomas) {
+        Map<String, Long> conteoPorIdioma = new HashMap<>();
+        for (String idioma : idiomas) {
+            conteoPorIdioma.put(idioma, libroRepository.countByIdioma(idioma));
+        }
+        return conteoPorIdioma;
+    }
+
+    public List<Autor> listarAutoresVivosEnAno(int ano) {
+        return autorRepository.findAutoresVivosEnAno(ano);
     }
 }

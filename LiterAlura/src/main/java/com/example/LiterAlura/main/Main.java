@@ -4,6 +4,7 @@ import com.example.LiterAlura.model.Libro;
 import com.example.LiterAlura.model.Autor;  // Asegúrate de importar la clase Autor
 import com.example.LiterAlura.service.ConsumoApi;
 import com.example.LiterAlura.service.ConvierteDatos;
+import com.example.LiterAlura.service.LibroService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -18,10 +19,13 @@ public class Main implements CommandLineRunner {
     private final ConsumoApi consumoApi;
     private final ConvierteDatos convierteDatos;
     private final List<Libro> librosConsultados;
+    private final LibroService libroService;
 
-    public Main(ConsumoApi consumoApi, ConvierteDatos convierteDatos) {
+
+    public Main(ConsumoApi consumoApi, ConvierteDatos convierteDatos, LibroService libroService) {
         this.consumoApi = consumoApi;
         this.convierteDatos = convierteDatos;
+        this.libroService = libroService;
         this.librosConsultados = new ArrayList<>();
     }
 
@@ -40,7 +44,8 @@ public class Main implements CommandLineRunner {
             System.out.println("2. Ver lista de libros consultados");
             System.out.println("3. Listar autores");
             System.out.println("4. Listar autores vivos en un año");
-            System.out.println("5. Salir");
+            System.out.println("5. Mostrar cantidad de libros por idioma");
+            System.out.println("6. Salir");
             System.out.print("Selecciona una opción: ");
 
             while (!scanner.hasNextInt()) {
@@ -64,14 +69,28 @@ public class Main implements CommandLineRunner {
                     listarAutoresVivosEnAno(scanner);
                     break;
                 case 5:
+                    mostrarCantidadLibrosPorIdioma();
+                    break;
+                case 6:
                     System.out.println("Saliendo del programa...");
                     break;
                 default:
                     System.out.println("Opción no válida. Intenta de nuevo.");
             }
-        } while (opcion != 5);
+        } while (opcion != 6);
 
         scanner.close();
+    }
+
+    private void mostrarCantidadLibrosPorIdioma() {
+        // Define los idiomas que quieres contar
+        List<String> idiomas = Arrays.asList("es", "en");
+        Map<String, Long> conteo = libroService.contarLibrosPorIdioma(idiomas);
+
+        System.out.println("\n===== Cantidad de Libros por Idioma =====");
+        for (Map.Entry<String, Long> entry : conteo.entrySet()) {
+            System.out.printf("Idioma: %s, Libros: %d%n", entry.getKey(), entry.getValue());
+        }
     }
 
     private void consultarLibroPorTitulo(Scanner scanner) {
@@ -149,28 +168,21 @@ public class Main implements CommandLineRunner {
         }
 
         int ano = scanner.nextInt();
-        Set<String> autoresVivos = new HashSet<>();
 
-        for (Libro libro : librosConsultados) {
-            if (libro.getAutor() != null) {
-                Autor autorObj = libro.getAutor();  // Obtén el objeto Autor
-                int anoNacimiento = autorObj.getAnoNacimiento();  // Año de nacimiento del autor
-                int anoMuerte = autorObj.getAnoMuerte();  // Año de muerte del autor
+        try {
+            List<Autor> autoresVivos = libroService.listarAutoresVivosEnAno(ano); // Usamos el servicio
 
-                // Verifica si el autor está vivo en el año ingresado
-                if (anoNacimiento <= ano && (anoMuerte >= ano || anoMuerte == 0)) {
-                    autoresVivos.add(autorObj.getNombre());  // Añade el nombre del autor
+            if (autoresVivos.isEmpty()) {
+                System.out.println("No se encontraron autores vivos en ese año.");
+            } else {
+                System.out.println("\n===== Lista de Autores Vivos en el Año " + ano + " =====");
+                for (Autor autor : autoresVivos) {
+                    System.out.println(autor.getNombre());
                 }
             }
-        }
-
-        if (autoresVivos.isEmpty()) {
-            System.out.println("No se encontraron autores vivos en ese año.");
-        } else {
-            System.out.println("\n===== Lista de Autores Vivos en el Año " + ano + " =====");
-            for (String autor : autoresVivos) {
-                System.out.println(autor);
-            }
+        } catch (Exception e) {
+            System.out.println("Ocurrió un error al buscar autores vivos: " + e.getMessage());
         }
     }
+
 }
